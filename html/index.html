@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>ESP32 MQTT Example</title>
+
+	<style>
+		.content {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+		}
+		.content .debug {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			margin-bottom: 30px;
+			font-family: monospace;
+    		font-size: 15px;
+		}
+		.content .img-container {
+			position: relative;
+			margin-top: 30px;
+		}
+		.content .img-container #led {
+			width: 10px;
+			aspect-ratio: 1;
+			background: #3e5bff;
+			position: absolute;
+			top: 205px;
+			right: 170px;
+			border-radius: 50%;
+			box-shadow: 0 0 30px 30px #3e5bff, 0 0 30px 30px #0400ff;
+			display: none;
+		}
+		.content .img-container img {
+			max-width: 350px;
+		}
+		.content .img-container img.disable {
+			opacity: 0.5;
+		}
+		 
+	</style>
+</head>
+<body>
+	<div class="content">
+		<div class="debug">
+			<div>
+				ESP Status: <span id="ESPStatus">off</span>
+			</div>
+			<div>
+				LED Status: <span id="LEDStatus">off</span>
+			</div>
+		</div>
+
+		<div class="btn-container">
+			<button type="button" id="btnOn" onclick="changeLedStatus(true)">Turn LED On</button>
+			<button type="button" id="btnOff" onclick="changeLedStatus(false)">Turn LED Off</button>
+		</div>
+
+		<div class="img-container">
+			<img id="ledImg" src="esp.webp" alt="esp32">
+			<div id="led"></div>
+		</div>
+	</div>
+
+	<script>
+		const addr = "127.0.0.1:1234"
+		const ws = new WebSocket(`ws://${addr}/ws`)
+		ws.addEventListener('message', (message) => {
+			const msg = JSON.parse(message.data)
+
+			if (msg.action == 'esp32/status') {
+				const ESPStatus = msg.message === 'on'
+				document.getElementById('ESPStatus').innerHTML = ESPStatus ? 'on' : 'off'
+
+				if (ESPStatus) {
+					document.getElementById('ledImg').classList.remove('disabled')
+				} else {
+					document.getElementById('ledImg').classList.add('disabled')
+				}
+			} else if (msg.action == 'esp32/led/status') {
+				const LEDStatus = msg.message === 'on'
+				document.getElementById('LEDStatus').innerHTML = LEDStatus ? 'on' : 'off'
+				document.getElementById('btnOn').disabled = LEDStatus
+				document.getElementById('btnOff').disabled = !LEDStatus
+				
+				document.getElementById('led').style.display = LEDStatus ? 'block' : 'none'
+			}
+		})
+
+		function changeLedStatus(status) {
+			const http = new XMLHttpRequest();
+			const url = `http://${addr}/${status ? 'on' : 'off'}`;
+			http.open("GET", url);
+			http.send();
+		}
+	</script>
+</body>
+</html>
